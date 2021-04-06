@@ -1,1 +1,10 @@
+# python
 __pychache__
+
+# system
+._*
+.DS_Store
+
+# dev and secrets
+/dev
+*.db*
