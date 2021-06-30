@@ -12,7 +12,7 @@ import json
 #   food_name: 
 #       Self explanatory
 #   portion_type: 
-#       Each food has 1 or more associate portion type(glass, spoon, slice, etc).
+#       Each food has 1 or more associated portion types (glass, spoon, slice, etc).
 #       Each portion type of a particular food is treated as a separate entry in the database
 #       but will be grouped together under the common food name when presented to the user.
 #       Omitting a portion type is allowed on the user end, this will simply be treated as
@@ -20,8 +20,9 @@ import json
 #   includes_foods: 
 #       This acts sort of like an ingredients list which allows foods to be supersets
 #       of other foods. each entry in this list must be a list containing both food name and 
-#       portion type.
+#       portion type of a food already present in this database
 #       TODO make sure to prevent circular definitions
+#       TODO make sure to take care of cases when food dependancies are deleted later
 #   base_calories: 
 #       When a food cannot be constructed purely as a superset of other foods
 #       an integer of calories can be added. This is also useful for defining atomized foods
@@ -42,16 +43,14 @@ import json
 # 
 # The databases store data as json strings
 
-
 record_db_path = "record.db"
 foods_db_path = "foods.db"
 
 
-def create_databases() -> int:
+def create_databases() -> None:
     """Creates the two empty databases.
     This function probably only needs to be run once.
-    Returns 1 on success, 0 on failure"""
-
+    """
     conn = sqlite3.connect(record_db_path)
     c = conn.cursor()
     c.execute("""
@@ -81,20 +80,81 @@ def create_databases() -> int:
 
 def add_entry_record_db(data_json_string) -> None:
     """Adds given json data to record database"""
-    pass
+    parsed_data = parse_json_string("record", data_json_string)
+    conn = sqlite3.connect(record_db_path)
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO record 
+        VALUES (
+            :date,
+            :food_name,
+            :portion_type,
+            :servings
+        )""",
+        {
+            "date": None,
+            "food_name": None,
+            "portion_type": None,
+            "servings": None
+        }
+    )
+    conn.commit()
+    conn.close()
 
 
 def add_entry_foods_db(data_json_string) -> None:
     """Adds given json data to foods database"""
+    parsed_data = parse_json_string("foods", data_json_string)
+    conn = sqlite3.connect(record_db_path)
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO foods 
+        VALUES (
+            :food_name,
+            :portion_type,
+            :includes_foods text,
+            :base_calories integer
+        )""",
+        {
+            "food_name": None,
+            "portion_type": None,
+            "includes_foods": None,
+            "base_calories": None
+        }
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_entry_record_db(search_criteria_json_string) -> list:
+    """Retrieve all entries in the record database that meet the search criteria
+    Always returns a list containing none or more strings of data in json format"""
+    conn = sqlite3.connect(record_db_path)
+    c = conn.cursor()
+    # TODO: add condition
+    c.execute("""
+        SELECT
+            date,
+            food_name,
+            portion_type,
+            servings
+        FROM record
+        WHERE 
+
+    """)
+    # TODO: test if this function works
+
+
+def get_entry_foods_db(search_criteria_json_string) -> list:
+    """Retrieve all entries in the foods database that meet the search criteria
+    Always returns a list containing none or more strings of data in json format"""
     pass
 
 
 def update_record_db(data_json_string) -> None:
     """Updates an entry in the record database with given json data"""
-    
-    parsed_data = parse_and_verify_data(data_json_string)
-
-    conn = sqlite.connect(record_db_path)
+    parsed_data = parse_json_string("record", data_json_string)
+    conn = sqlite3.connect(record_db_path)
     c = conn.cursor()
     c.execute("""
         UPDATE record SET
@@ -117,8 +177,7 @@ def update_record_db(data_json_string) -> None:
 
 def update_foods_db(data_json_string) -> None:
     """Updates an entry in the foods database with given json data"""
-    parsed_data = parse_and_verify_data(data_json_string)
-
+    parsed_data = parse_json_string("foods", data_json_string)
     conn = sqlite3.connect(record_db_path)
     c = conn.cursor()
     c.execute("""
@@ -140,7 +199,7 @@ def update_foods_db(data_json_string) -> None:
     conn.close()
     
                 
-def parse_and_verify_data(db_name, parsed_data) -> int:
+def parse_json_string(db_name, data_json_string) -> dict:
     """"""
-    return None    
+    return dict    
 
