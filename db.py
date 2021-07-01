@@ -20,8 +20,8 @@ import json
 #       it's own entry in the database where the portion type is an empty string
 #   includes_foods: 
 #       This acts sort of like an ingredients list which allows foods to be supersets
-#       of other foods. each entry in this list must be a list containing both food name and 
-#       portion type of a food already present in this database
+#       of other foods. each entry in this list must be a list containing food name, 
+#       portion type and number of servings of a food already present in this database
 #       TODO make sure to prevent circular definitions
 #       TODO make sure to take care of cases when food dependancies are deleted later
 #   base_calories: 
@@ -103,21 +103,22 @@ def add_entry_record_db(input_data) -> None:
 
 def add_entry_foods_db(input_data) -> None:
     """Adds given data to foods database
-    Data should be a dict with keys matching the database column names"""
-    conn = sqlite3.connect(record_db_path)
+    Data should be a dict with keys matching the database column names
+    includes_foods should be a list of lists"""
+    conn = sqlite3.connect(foods_db_path)
     c = conn.cursor()
     c.execute("""
         INSERT INTO foods 
         VALUES (
             :food_name,
             :portion_type,
-            :includes_foods text,
-            :base_calories integer
+            :includes_foods,
+            :base_calories
         )""",
         {
             "food_name": input_data["food_name"],
             "portion_type": input_data["portion_type"],
-            "includes_foods": input_data["includes_foods"],
+            "includes_foods": json.dumps(input_data["includes_foods"]),
             "base_calories": input_data["base_calories"]
         }
     )
@@ -140,10 +141,12 @@ def get_entry_from_db(db_name, **search_criteria) -> list:
     # construct the search criteria
     # consult sqlite documentation regarding the formatting
     condition_string = " AND ".join([f"{k} LIKE '%{v}%'" for k, v in search_criteria.items()])
+    if condition_string:
+        condition_string = "WHERE " + condition_string
     c.execute(f"""
         SELECT *
         FROM {db_name}
-        WHERE {condition_string}
+        {condition_string}
     """)
     entries = c.fetchall()
     conn.close()
@@ -153,20 +156,19 @@ def get_entry_from_db(db_name, **search_criteria) -> list:
     if db_name == "record":
         for entry in entries:
             output_list.append({
-                "date":entry[0],
-                "food_name":entry[1],
-                "portion_type":entry[2],
-                "servings":entry[3]
+                "date": entry[0],
+                "food_name": entry[1],
+                "portion_type": entry[2],
+                "servings": entry[3]
             })
     else:
         for entry in entries:
             # this is stored as a string of json data in the db, we need to parse it first
-            includes_foods = json.loads(entry[2])
             output_list.append({
-                "food_name":entry[0],
-                "portion_type":entry[1],
-                "includes_foods":includes_foods,
-                "base_calories":entry[3]
+                "food_name": entry[0],
+                "portion_type": entry[1],
+                "includes_foods": json.loads(entry[2]),
+                "base_calories": entry[3]
             })
     return output_list
 
