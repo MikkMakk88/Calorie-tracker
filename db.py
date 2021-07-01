@@ -4,6 +4,7 @@
 import sqlite3
 from datetime import datetime
 import json
+import os
 
 # We use 2 different databases:
 # 
@@ -223,7 +224,7 @@ def update_foods_db(data_json_string) -> None:
     pass
     
                 
-def debug_print_all_entries():
+def debug_get_all_entries(print=False):
     # retrieve entries from record database
     conn = sqlite3.connect(record_db_path)
     c = conn.cursor()
@@ -237,10 +238,21 @@ def debug_print_all_entries():
     foods_entries = c.fetchall()
     
     # print them out
-    print("record:")
-    for entry in record_entries:
-        print("    ", entry)
-    print("foods:")
-    for entry in foods_entries:
-        print("    ", entry)
-    conn.close()
+    if print:
+        print("record:")
+        for entry in record_entries:
+            print("    ", entry)
+        print("foods:")
+        for entry in foods_entries:
+            print("    ", entry)
+        conn.close()
+
+    # return them
+    return (record_entries, foods_entries)
+
+
+def delete_databases():
+    if os.path.exists("record.db"):
+        os.remove("record.db")
+    if os.path.exists("foods.db"):
+        os.remove("foods.db")
