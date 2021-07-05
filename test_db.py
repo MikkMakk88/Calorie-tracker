@@ -3,21 +3,35 @@ import unittest
 import db
 import os
 
+db_path = "test_db.db"
 
-class TestDatabase(unittest.TestCase):
-    
-    # starting this method with "test" is required by the unittest module
-    def test_create_new_databases(self):
-        # delte existing databases
-        db.delete_databases()
-        self.assertEquals(False, os.path.exists("record.db"))
-        self.assertEquals(False, os.path.exists("foods.db"))
-        # create new databases
-        db.create_databases()
-        self.assertEquals(True, os.path.exists("record.db"))
-        self.assertEquals(True, os.path.exists("foods.db"))
-        # TODO check content of new databases
 
+# used to first test creation and deletion of database
+class TestDatabaseWithoutSetUp(unittest.TestCase):
+
+    def test_create_db(self):
+        self.assertEqual(False, os.path.exists(db_path))
+        db.create_db_and_tables(db_path)
+        self.assertEqual(True, os.path.exists(db_path))
+        os.remove(db_path)
+        self.assertEqual(False, os.path.exists(db_path))
+
+
+class TestDatabaseWithSetUp(unittest.TestCase):
+
+    def setUp(self):
+        db.create_db_and_tables(db_path)   
+
+    def tearDown(self):
+        os.remove(db_path)
+
+    # starting thest methods with "test" is required by the unittest module
+    def test_get_empty_rows(self):
+        record_rows = db.get_rows_from_table(db_path, "record")
+        foods_rows = db.get_rows_from_table(db_path, "foods")
+        self.assertEqual([], record_rows)
+        self.assertEqual([], foods_rows)
+        
 
 if __name__ == "__main__":
     unittest.main()

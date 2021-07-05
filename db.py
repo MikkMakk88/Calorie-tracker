@@ -158,7 +158,38 @@ def get_rows_from_table(db_path, table_name, **search_criteria) -> list:
     return output_list
 
 
-# def update_table(db_path, table_name, input_data) -> None:
+def delete_rows_in_table(db_path, table_name, **search_criteria) -> None:
+    """
+    Behaves similarly to get_rows_from_table but deletes
+    matching search criteria instead.
+    """
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    # construct the search criteria
+    # consult sqlite documentation regarding the formatting
+    condition_string = " AND ".join([f"{k} LIKE '%{v}%'" for k, v in search_criteria.items()])
+    if condition_string:
+        c.execute(f"""
+            DELETE 
+            FROM {table_name} 
+            WHERE {condition_string}
+        """)
+    conn.close()
+
+
+def delete_table(db_path, table_name):
+    """
+    Delete given table in given database
+    """
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute(f"""
+        DROP 
+        TABLE IF EXISTS {table_name}
+    """)
+
+
+# def update_row(db_path, table_name, input_data) -> None:
 #     """Updates a row in the record database with given json data"""
 #     parsed_data = parse_json_string("record", data_json_string)
 #     conn = sqlite3.connect(record_db_path)
@@ -205,33 +236,3 @@ def get_rows_from_table(db_path, table_name, **search_criteria) -> list:
 #     conn.commit()
 #     conn.close()
     
-                
-def delete_rows_in_table(db_path, table_name, **search_criteria) -> None:
-    """
-    Behaves similarly to get_rows_from_table but deletes
-    matching search criteria instead.
-    """
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    # construct the search criteria
-    # consult sqlite documentation regarding the formatting
-    condition_string = " AND ".join([f"{k} LIKE '%{v}%'" for k, v in search_criteria.items()])
-    if condition_string:
-        c.execute(f"""
-            DELETE 
-            FROM {table_name} 
-            WHERE {condition_string}
-        """)
-    conn.close()
-
-
-def delete_table(db_path, table_name):
-    """
-    Delete given table in given database
-    """
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute(f"""
-        DROP 
-        TABLE IF EXISTS {table_name}
-    """)
