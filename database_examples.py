@@ -1,3 +1,7 @@
+"""
+Examples of how database rows should be structured.
+"""
+
 record_entry1 = {
     "date":"06-06-1990",
     "food_name":"broccoli",
