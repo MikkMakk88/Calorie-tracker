@@ -1,16 +1,16 @@
 # Calorie Tracker Documentation
 
-
+---
 ---
 # db.py
 
 
-The database includes 2 tables
+#### The database includes 2 tables:
 
 
 <br>
 
-## foods 
+### foods 
 Each row in the table represents a separate food item.
 
 Columns stored in the table are:
@@ -30,10 +30,33 @@ Columns stored in the table are:
 	- When a food cannot be constructed purely as a superset of other foods
       an integer of calories can be added. This is also useful for defining atomized foods.
 
+#### Examples
+
+```
+food_entry1 = {
+    "food_name":"broccoli",
+    "portion_type":"head",
+    "includes_foods":[
+    ],
+    "base_calories":30
+}
+```
+
+```
+food_entry2 = {
+    "food_name":"toast with butter",
+    "portion_type":"slice",
+    "includes_foods":[
+        ["bread","slice",1],
+        ["butter","spread",1]
+    ],
+    "base_calories":0
+}
+```
 
 <br>
 
-## record
+### record
 Each row in the table represents one consumed food item. 
 
 Columns stored in the table are:
@@ -45,3 +68,14 @@ Columns stored in the table are:
 	- String, corresponding to the same name as in the foods table
 - servings:
 	- Integer, number of items consumed
+
+#### Example
+
+```
+record_entry1 = {
+    "date":"06-06-1990",
+    "food_name":"broccoli",
+    "portion_type":"head",
+    "servings":1
+}
+```
