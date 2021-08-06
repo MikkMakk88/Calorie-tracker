@@ -2,9 +2,7 @@
 Functions to process operations that should be performed on the database.
 """
 from datetime import datetime
-
-import db
-import cfg
+import db, cfg
 
 
 def add_food_to_record(date:datetime, food_name, portion_type, servings):

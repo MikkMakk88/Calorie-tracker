@@ -1,7 +1,6 @@
 """
 Low-level functions for directly handling the database.
 """
-
 import sqlite3
 from datetime import datetime
 import json

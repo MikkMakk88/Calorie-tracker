@@ -1,7 +1,6 @@
 """
 Utility functions used by various other functions in the code
 """
-
 from datetime import datetime
 
 def convert_date_str_to_datetime(date_str) -> str:
