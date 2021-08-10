@@ -49,7 +49,7 @@ def create_db_and_tables(db_path) -> None:
     conn.close()
 
 
-def add_row_to_table(db_path, table_name, input_data) -> None:
+def add_row_to_table(db_path, table_name, new_data) -> None:
     """
     Adds input data to table specified by table_name argument.
     Data should be a dict with keys matching the database column names.
@@ -67,10 +67,10 @@ def add_row_to_table(db_path, table_name, input_data) -> None:
                 :servings
             )""",
             {
-                'date': input_data['date'],
-                'food_name': input_data['food_name'],
-                'portion_type': input_data['portion_type'],
-                'servings': input_data['servings']
+                'date': new_data['date'],
+                'food_name': new_data['food_name'],
+                'portion_type': new_data['portion_type'],
+                'servings': new_data['servings']
             }
         )
     elif table_name == 'foods':
@@ -83,10 +83,10 @@ def add_row_to_table(db_path, table_name, input_data) -> None:
                 :base_calories
             )""",
             {
-                'food_name': input_data['food_name'],
-                'portion_type': input_data['portion_type'],
-                'includes_foods': dumps(input_data['includes_foods']),
-                'base_calories': input_data['base_calories']
+                'food_name': new_data['food_name'],
+                'portion_type': new_data['portion_type'],
+                'includes_foods': dumps(new_data['includes_foods']),
+                'base_calories': new_data['base_calories']
             }
         )
     conn.commit()
@@ -146,6 +146,7 @@ def delete_rows_in_table(db_path, table_name, **match_criteria) -> None:
     """
 
     if not match_criteria:
+        print("db.delete_rows_in_table: Warning, no match_critera passed.")
         return
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
@@ -157,10 +158,11 @@ def delete_rows_in_table(db_path, table_name, **match_criteria) -> None:
         FROM {table_name} 
         WHERE {match_string}
     """)
+    conn.commit()
     conn.close()
 
 
-def delete_table(db_path, table_name):
+def delete_table(db_path, table_name) -> None:
     """
     Delete given table in given database
     """
@@ -173,12 +175,13 @@ def delete_table(db_path, table_name):
     """)
 
 
-def update_row(db_path, table_name, new_data, **match_criteria) -> None:
+def update_row_in_table(db_path, table_name, new_data, **match_criteria) -> None:
     """
     In given database, replace row that matches match_criteria with new_data.
     As with get_rows_from_table(), match criteria should be passed as 
     none or more kwargs in the form <column name>=<match value>. 
     """
+
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     match_string = db_convert_match_criteria_to_string(**match_criteria)
