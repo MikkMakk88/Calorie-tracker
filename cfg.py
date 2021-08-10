@@ -1,1 +1,1 @@
-db_path = 'db.py'
+db_path = 'database.db'
