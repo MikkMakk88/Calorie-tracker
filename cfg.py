@@ -1,1 +1,1 @@
-db_path = 'database.db'
+db_path = 'test_database.db'

@@ -5,7 +5,7 @@ from datetime import datetime
 from json import dumps
 
 
-def convert_date_str_to_datetime(date_str) -> str:
+def convert_date_str_to_datetime(date_str) -> datetime:
     """
     Converts a string of the form "dd-mm-yyyy" to a valid datetime object.
     Converting back can simply be done with the datetime.strftime() method.
@@ -28,6 +28,6 @@ def db_convert_match_criteria_to_string(**match_criteria) -> str:
         match_criteria['includes_foods'] = dumps(match_criteria['includes_foods'])
     # construct the search criteria
     # consult sqlite documentation regarding the formatting
-    condition_string = " AND ".join([f"{k} LIKE '%{v}%'" for k, v in match_criteria.items()])
+    condition_string = ' AND '.join([f"{k} LIKE '%{v}%'" for k, v in match_criteria.items()])
     return condition_string
     

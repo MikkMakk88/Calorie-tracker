@@ -8,3 +8,4 @@ __pycache__/
 # dev and secrets
 /dev
 *.db*
+.test.py

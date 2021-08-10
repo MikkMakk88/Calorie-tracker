@@ -36,14 +36,14 @@ add_entry_parser.add_argument(
 add_entry_parser.add_argument(
                 '--portion-type',
                 default='',
-                help="Type of portion (e.g. cup, slice, bowl). Defaults to None.",
+                help="Type of portion (e.g. cup, slice, bowl). Default=None.",
                 metavar='',
                 type=str)
 
 add_entry_parser.add_argument(
                 '--servings',
                 default=1,
-                help="Number of servings. Defaults to 1.",
+                help="Number of servings. Default=1.",
                 metavar='',
                 type=int)
 
@@ -52,7 +52,7 @@ add_entry_parser.add_argument(
                 choices=['today', 'yesterday', 'DD/MM/YYYY'],
                 default='today',
                 help="Optionally specify a specific day the food should be added to. \
-                        Defaults to today.",
+                        Default=today.",
                 metavar='               {today,yesterday,DD/MM/YYYY}',
                 type=str)
 
