@@ -1,7 +1,9 @@
 """
 Functions and logic concerning the command line interface.
 """
+
 import argparse
+
 
 # define parsers
 parser = argparse.ArgumentParser(

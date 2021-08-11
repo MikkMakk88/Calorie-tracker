@@ -1,5 +1,6 @@
 """
 Low-level functions for directly handling the database.
+
 """
 import sqlite3
 from datetime import datetime
@@ -11,21 +12,12 @@ from utilities import db_convert_match_criteria_to_string
 # TODO make sure to take care of cases when food dependancies are deleted later.
 
 
-def create_empty_db(db_path) -> None:
-    try: 
-        conn = sqlite3.connect(db_path)
-    finally:
-        if conn:
-            conn.close()
-
-
 def create_db_and_tables(db_path) -> None:
     """
     Creates the database with the two separate tables.
+
     This function probably only needs to be run once.
     """
-    
-    # create_empty_db(db_path)
 
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
@@ -52,6 +44,7 @@ def create_db_and_tables(db_path) -> None:
 def add_row_to_table(db_path, table_name, new_data) -> None:
     """
     Adds input data to table specified by table_name argument.
+
     Data should be a dict with keys matching the database column names.
     """
 
@@ -97,8 +90,10 @@ def get_rows_from_table(db_path, table_name, **match_criteria) -> list:
     """
     Retrieve all entries from given table in given database that meet 
     the search criteria.
+
     Search criteria should be passed as none or more kwargs in the 
     form <column name>=<search value>.
+
     Always returns a list of none or more dictionaries representing 
     individual entries.
     """
@@ -106,7 +101,8 @@ def get_rows_from_table(db_path, table_name, **match_criteria) -> list:
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     match_string = db_convert_match_criteria_to_string(**match_criteria)
-    # Supplying no match_critera is a valid search, in that case we return the entire table.
+    # Supplying no match_critera is a valid search, 
+    # in that case we return the entire table.
     if match_string:
         match_string = 'WHERE ' + match_string
     c.execute(f"""
@@ -129,7 +125,8 @@ def get_rows_from_table(db_path, table_name, **match_criteria) -> list:
             })
     elif table_name == 'foods':
         for row in rows:
-            # this is stored as a string of json data in the table, we need to parse it first
+            # this is stored as a string of json data in the table,
+            # we need to parse it first.
             output_list.append({
                 'food_name': row[0],
                 'portion_type': row[1],
@@ -150,8 +147,8 @@ def delete_rows_in_table(db_path, table_name, **match_criteria) -> None:
         return
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    # construct the search criteria
-    # consult sqlite documentation regarding the formatting
+    # construct the search criteria.
+    # consult sqlite documentation regarding the formatting.
     match_string = db_convert_match_criteria_to_string(**match_criteria)
     c.execute(f"""
         DELETE 
@@ -175,9 +172,11 @@ def delete_table(db_path, table_name) -> None:
     """)
 
 
-def update_row_in_table(db_path, table_name, new_data, **match_criteria) -> None:
+def update_row_in_table(db_path, table_name, 
+                        new_data, **match_criteria) -> None:
     """
     In given database, replace row that matches match_criteria with new_data.
+
     As with get_rows_from_table(), match criteria should be passed as 
     none or more kwargs in the form <column name>=<match value>. 
     """

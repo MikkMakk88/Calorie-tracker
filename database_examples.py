@@ -1,5 +1,6 @@
 """
 Examples of how database rows should be structured.
+
 """
 
 record_entry1 = {

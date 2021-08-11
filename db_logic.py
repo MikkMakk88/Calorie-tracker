@@ -1,20 +1,43 @@
 """
 Functions to handle slightly more complex operations that should be performed 
 on the database.
+
 """
 from datetime import datetime
 import db, cfg
 
 
-
-def add_entry_to_record_table(food_name, date=None, portion_type='', servings=1) -> None:
+def add_food_to_foods_table(food_name, portion_type='', 
+                            includes_foods=None, base_calories=0) -> None:
     """
-    This function is called whenever we want to add a consumed food to the 
-    record database.
+    This acts mostly as a wrapper for db.add_row_to_table(), added for 
+    the sake of consistency.
+
+    This function will not check whether the food already exists in the table.
     """
 
-    # Check whether the food and portion_type exists in the foods database or not.
-    # If not, then we prompt the user to add it first.
+    # avoid creating a shared mutable type when defining the function
+    if includes_foods == None:
+        includes_foods = []
+
+    new_data = {
+        'food_name': food_name,
+        'portion_type': portion_type,
+        'includes_foods': includes_foods,
+        'base_calires': base_calories
+    }
+    db.add_row_to_table(cfg.db_path, 'foods', new_data)
+
+
+def add_entry_to_record_table(food_name, date=None, 
+                              portion_type='', servings=1) -> None:
+    """
+    Makes multiple queries to the database and performs logic to correctly 
+    process requests to add a food entry to the record table.
+    """
+
+    # Check whether the food and portion_type exists in the foods database or 
+    # not. If not, then we prompt the user to add it first.
     food_entries = db.get_rows_from_table(
         cfg.db_path, 
         'foods',
@@ -65,6 +88,3 @@ def add_entry_to_record_table(food_name, date=None, portion_type='', servings=1)
         'record',
         new_data
     )
-
-def add_food_to_foods_table() -> None:
-    pass
