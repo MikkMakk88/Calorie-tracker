@@ -34,8 +34,7 @@ def create_db_and_tables() -> None:
         CREATE TABLE IF NOT EXISTS foods (
             food_name text,
             portion_type text,
-            includes_foods text,
-            base_calories integer
+            calories integer
         )
     """)
     conn.commit()
@@ -80,8 +79,7 @@ def get_rows_from_table(table_name:str, **match_criteria) -> list:
             output_list.append({
                 'food_name': row[0],
                 'portion_type': row[1],
-                'includes_foods': loads(row[2]),
-                'base_calories': row[3]
+                'calories': row[3]
             })
     elif table_name == 'record':
         for row in rows:
@@ -96,8 +94,8 @@ def get_rows_from_table(table_name:str, **match_criteria) -> list:
 
 
 def add_row_to_table(table_name:str,
-    date:datetime=None, food_name:str=None, portion_type='', servings=1,
-    includes_foods:list=None, base_calories=0) -> None:
+    date:datetime=None, food_name:str=None, portion_type='', 
+    servings=1, calories=0) -> None:
     """
     Adds input data to table specified by table_name argument.
 
@@ -184,24 +182,17 @@ def add_row_to_table(table_name:str,
             print("add_row_to_table(): food already exists in database.")
             return
 
-        # Create mutable list at function call time.
-        if includes_foods == None:
-            includes_foods = []
-        includes_foods = dumps(includes_foods)
-        
         c.execute("""
             INSERT INTO foods 
             VALUES (
                 :food_name,
                 :portion_type,
-                :includes_foods,
-                :base_calories
+                :calories
             )""",
             {
                 'food_name': food_name,
                 'portion_type': portion_type,
-                'includes_foods': includes_foods,
-                'base_calories': base_calories
+                'calories': calories
             }
         )
     
@@ -263,10 +254,10 @@ def update_row_in_table(table_name:str, **update_and_match_criteria) -> None:
 
         update_row_in_table('foods', 
             match_food_name='broccoli', match_portion_type='head',
-            base_calories=50
+            calories=50
         )
 
-    In this example case we update the base_calories value for a head of 
+    In this example case we update the calories value for a head of 
     broccoli in the foods table.
     """
 
@@ -304,8 +295,7 @@ def update_row_in_table(table_name:str, **update_and_match_criteria) -> None:
             {
                 'food_name': update_and_match_criteria['food_name'],
                 'portion_type': update_and_match_criteria['portion_type'],
-                'includes_foods': dumps(update_and_match_criteria['includes_foods']),
-                'base_calories': update_and_match_criteria['base_calories']
+                'calories': update_and_match_criteria['calories']
             }
         )
 

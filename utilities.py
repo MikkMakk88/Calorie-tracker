@@ -1,6 +1,5 @@
 """
 Utility functions used by various other functions in the code
-
 """
 from datetime import datetime
 from json import dumps
@@ -32,9 +31,6 @@ def db_convert_match_criteria_to_string(**match_criteria) -> str:
         match_food_name='broccoli', match_portion_type='head'
     """
 
-    if match_criteria.get('match_includes_foods'):
-        match_criteria['match_includes_foods'] = dumps(match_criteria['match_includes_foods'])
-
     # remove preceeding 'match_' from each key in the dict and construct the 
     # query string.
     REMOVE_PREFIX = re.compile(r'^match_')
@@ -42,6 +38,6 @@ def db_convert_match_criteria_to_string(**match_criteria) -> str:
         f"{REMOVE_PREFIX.sub('', key)} LIKE '%{value}%'" 
         for key, value in match_criteria.items() 
         if bool(re.match('match_', key))
-        ])
+    ])
     return match_string
     
