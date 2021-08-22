@@ -130,11 +130,11 @@ def add_row_to_table(table_name:str,
     )
 
     if table_name == 'record':
-        # If the food doesn't exist in the foods db we prompt the user to add it first.
-        if not food_exists:
-        # TODO impliment this logic
-            print('food not in db')
-            return
+        # # If the food doesn't exist in the foods db we prompt the user to add it first.
+        # if not food_exists:
+        # # TODO impliment this logic
+            # print('food not in db')
+            # return
 
         # Create datetime object at function call time.
         if date == None:

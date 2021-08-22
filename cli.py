@@ -12,63 +12,84 @@ subparsers = parser.add_subparsers(
                 help='command',
                 dest='subparser_name')
 
-add_food_parser = subparsers.add_parser(
-                'add-food',
+food_parser = subparsers.add_parser(
+                'food',
                 help="Add food item to database.")
 
-add_entry_parser = subparsers.add_parser(
-                'add-entry',
+entry_parser = subparsers.add_parser(
+                'entry',
                 help="Add food entry to the record.")
 
 
 
-# add-food arguments
-add_food_parser.add_argument(
-                'food-name',
+# def arguments of food subparser
+food_parser.add_argument(
+                'food',
                 help="Name of food to be added to the database.",
                 type=str)
 
+food_parser.add_argument(
+                'calories',
+                help="How many calories the food contains.",
+                type=str)
 
-# add-entry arguments
-add_entry_parser.add_argument(
-                'food-name',
+food_parser.add_argument(
+                '--type',
+                metavar='',
+                help="Type of portion (e.g. cup, slice, bowl), default=None.",
+                type=str)
+
+
+
+# define arguments of entry subparser
+entry_parser.add_argument(
+                'food',
                 help="Name of food to be added to today's record.",
                 type=str)
 
-add_entry_parser.add_argument(
-                '--portion-type',
+entry_parser.add_argument(
+                '--type',
                 default='',
-                help="Type of portion (e.g. cup, slice, bowl). Default=None.",
+                help="Type of portion (e.g. cup, slice, bowl), default=None.",
                 metavar='',
                 type=str)
 
-add_entry_parser.add_argument(
+entry_parser.add_argument(
                 '--servings',
                 default=1,
-                help="Number of servings. Default=1.",
+                help="Number of servings, default=1.",
                 metavar='',
                 type=int)
 
-add_entry_parser.add_argument(
+entry_parser.add_argument(
                 '--date',
-                choices=['today', 'yesterday', 'DD/MM/YYYY'],
                 default='today',
-                help="Optionally specify a specific day the food should be added to. \
-                        Default=today.",
-                metavar='               {today,yesterday,DD/MM/YYYY}',
+                help="Optionally specify a date, default=today.",
+                metavar='               {today,yesterday,tomorrow,DDMM(YYYY)}',
                 type=str)
 
 
+# debug
+if __name__ == '__main__':
+    args = parser.parse_args()
 
-args = parser.parse_args()
+    try:
+        if args.subparser_name == 'food':
+            print('food subparser used')
+            food_name = args.food
+            calories = args.calories
+            portion_type = args.type
+            print(food_name, calories, portion_type)
 
-if args.subparser_name == 'add-food':
-    print('add-food subparser used')
-    pass
-elif args.subparser_name == 'add-entry':
-    print('add-entry subparser used')
-    pass
-else:
-    print('no subparser used')
+        elif args.subparser_name == 'entry':
+            print('entry subparser used')
+            pass
 
-print(args)
+        else:
+            print('no subparser used')
+    except AttributeError as e:
+        print('ERROR:', e)
+
+
+    print(args)
+    print('subparser name: ', args.subparser_name)
