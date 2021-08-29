@@ -2,28 +2,26 @@
 Low-level functions for directly handling the database.
 """
 import sqlite3
+# TODO replace all datetime objects with date objects
 from datetime import datetime
-from json import dumps, loads
+from re import match
 
-from utilities import db_convert_match_criteria_to_string
-import cfg
+from utilities import db_convert_match_criteria_to_string, parse_date_string_to_date_object
 
-# TODO make sure to prevent circular definitions in the foods database.
-# TODO make sure to take care of cases when food dependancies are deleted later.
-# TODO review docstrings in db.py
+# TODO P3 make sure to take care of cases when food dependencies are deleted later.
+# TODO P4 convert datetime objects to date objects
 
 
-def create_db_and_tables() -> None:
+def create_db_and_tables(db_connection) -> None:
     """
     Creates the database with the two separate tables.
 
     This function probably only needs to be run once.
     """
 
-    conn = sqlite3.connect(cfg.db_path)
-    c = conn.cursor()
+    c = db_connection.cursor()
     c.execute("""
-            CREATE TABLE IF NOT EXISTS record (
+        CREATE TABLE IF NOT EXISTS record (
             date text,
             food_name text,
             portion_type text,
@@ -37,13 +35,12 @@ def create_db_and_tables() -> None:
             calories integer
         )
     """)
-    conn.commit()
-    conn.close()
+    db_connection.commit()
 
 
-def get_rows_from_table(table_name:str, **match_criteria) -> list:
+def get_rows_from_table(db_connection, table_name:str, **match_criteria) -> list:
     """
-    Retrieve all entries from specified table that meets the 
+    Retrieve all entries from specified table that fits the 
     match criteria.
 
     Match criteria should be passed as none or more kwargs in the 
@@ -55,8 +52,7 @@ def get_rows_from_table(table_name:str, **match_criteria) -> list:
     dictionary containing the data of an individual row.
     """
 
-    conn = sqlite3.connect(cfg.db_path)
-    c = conn.cursor()
+    c = db_connection.cursor()
 
     match_string = db_convert_match_criteria_to_string(**match_criteria)
     # Supplying no match_criteria is a valid search, 
@@ -70,21 +66,19 @@ def get_rows_from_table(table_name:str, **match_criteria) -> list:
         {match_string}
     """)
     rows = c.fetchall()
-    conn.close()
 
-    # Parse data into a list of dictionaries.
     output_list = []
     if table_name == 'foods':
         for row in rows:
             output_list.append({
                 'food_name': row[0],
                 'portion_type': row[1],
-                'calories': row[3]
+                'calories': row[2]
             })
     elif table_name == 'record':
         for row in rows:
             output_list.append({
-                'date': row[0],
+                'date': parse_date_string_to_date_object(row[0]),
                 'food_name': row[1],
                 'portion_type': row[2],
                 'servings': row[3]
@@ -93,7 +87,7 @@ def get_rows_from_table(table_name:str, **match_criteria) -> list:
     return output_list
 
 
-def add_row_to_table(table_name:str,
+def add_row_to_table(db_connection, table_name:str,
     date:datetime=None, food_name:str=None, portion_type='', 
     servings=1, calories=0) -> None:
     """
@@ -110,13 +104,13 @@ def add_row_to_table(table_name:str,
     Note: food_name is required to perform a sensible query. It is
     only listed as a keyword argument for the sake of consistency
     with the other functions.
-    
+
     This function will not check whether or not a matching entry 
     is already present in the database.
     """
+    # TODO P2 The last line of the docstring isn't true anymore, should it be?
 
-    conn = sqlite3.connect(cfg.db_path)
-    c = conn.cursor()
+    c = db_connection.cursor()
     
     if not food_name:
         print("add_rows_to_table(): no food_name given.")
@@ -124,6 +118,7 @@ def add_row_to_table(table_name:str,
     
     # Check whether the food already exists in the foods database.
     food_exists = get_rows_from_table(
+        db_connection,
         'foods',
         match_food_name=food_name,
         match_portion_type=portion_type
@@ -139,12 +134,12 @@ def add_row_to_table(table_name:str,
         # Create datetime object at function call time.
         if date == None:
             date = datetime.now()
-        date_str = datetime.strftime(date, '%d-%m-%Y')
         
         # Check if an entry with the given food exists on the given day. 
         record_entries = get_rows_from_table(
+            db_connection,
             'record', 
-            match_date=date_str,
+            match_date=date,
             match_food_name=food_name,
             match_portion_type=portion_type
         )
@@ -153,9 +148,10 @@ def add_row_to_table(table_name:str,
             record_entry = record_entries[0]
             record_entry['servings'] += 1
             update_row_in_table(
+                db_connection,
                 'record',
                 **record_entry, 
-                match_date=date_str, 
+                match_date=date, 
                 match_food_name=food_name,
                 match_portion_type=portion_type
             )
@@ -170,7 +166,7 @@ def add_row_to_table(table_name:str,
                 :servings
             )""",
             {
-                'date': date_str,
+                'date': datetime.strftime(date, '%d-%m-%Y'),
                 'food_name': food_name,
                 'portion_type': portion_type,
                 'servings': servings
@@ -196,11 +192,10 @@ def add_row_to_table(table_name:str,
             }
         )
     
-    conn.commit()
-    conn.close()
+    db_connection.commit()
 
 
-def delete_rows_in_table(table_name:str, **match_criteria) -> None:
+def delete_rows_in_table(db_connection, table_name:str, **match_criteria) -> None:
     """
     Behaves similarly to get_rows_from_table() but deletes matching
     rows instead of returning them.
@@ -210,8 +205,7 @@ def delete_rows_in_table(table_name:str, **match_criteria) -> None:
         print("db.delete_rows_in_table: Warning, no match_criteria passed.")
         return
     
-    conn = sqlite3.connect(cfg.db_path)
-    c = conn.cursor()
+    c = db_connection.cursor()
 
     match_string = db_convert_match_criteria_to_string(**match_criteria)
     c.execute(f"""
@@ -220,27 +214,24 @@ def delete_rows_in_table(table_name:str, **match_criteria) -> None:
         WHERE {match_string}
     """)
 
-    conn.commit()
-    conn.close()
+    db_connection.commit()
 
 
-def delete_table(table_name:str) -> None:
+def delete_table(db_connection, table_name:str) -> None:
     """
     Delete given table.
     """
 
-    conn = sqlite3.connect(cfg.db_path)
-    c = conn.cursor()
+    c = db_connection.cursor()
     c.execute(f"""
         DROP 
         TABLE IF EXISTS {table_name}
     """)
-    conn.commit()
-    conn.close()
+    db_connection.commit()
 
 
-def update_row_in_table(table_name:str, **update_and_match_criteria) -> None:
-    # TODO audit docstring of db.update_row_in_table()
+def update_row_in_table(db_connection, table_name:str, **update_and_match_criteria) -> None:
+    # TODO P4 audit docstring of db.update_row_in_table()
     """
     Replace columns of all rows that match the match criteria.
 
@@ -261,43 +252,34 @@ def update_row_in_table(table_name:str, **update_and_match_criteria) -> None:
     broccoli in the foods table.
     """
 
-    conn = sqlite3.connect(cfg.db_path)
-    c = conn.cursor()
-
     match_string = db_convert_match_criteria_to_string(**update_and_match_criteria)
+
+    query_set_list = []
+    for key in update_and_match_criteria:
+        val = update_and_match_criteria[key]
+        if not match('match_', key):
+            if type(val) == str:
+                query_set_list.append(f"{key} = '{val}'")
+            elif type(val) == int:
+                query_set_list.append(f"{key} = {val}")
+            elif type(val) == datetime:
+                query_set_list.append(datetime.strftime('%d-%m-%Y'))
+    query_set_string = ', '.join(query_set_list)
+
+    c = db_connection.cursor()
     if table_name == 'record':
         c.execute(f"""
             UPDATE record 
-            SET date = :date,
-                food_name = :food_name,
-                portion_type = :portion_type,
-                servings = :servings
-    
+            SET {query_set_string}
             WHERE {match_string}
-            """,
-            {
-                'date': update_and_match_criteria['date'],
-                'food_name': update_and_match_criteria['food_name'],
-                'portion_type': update_and_match_criteria['portion_type'],
-                'servings': update_and_match_criteria['servings']
-            }
+            """
         )
     elif table_name == 'foods':
         c.execute(f"""
             UPDATE foods 
-            SET date = :date,
-                food_name = :food_name,
-                portion_type = :portion_type,
-                servings = :servings
-    
+            SET {query_set_string}
             WHERE {match_string}
-            """,
-            {
-                'food_name': update_and_match_criteria['food_name'],
-                'portion_type': update_and_match_criteria['portion_type'],
-                'calories': update_and_match_criteria['calories']
-            }
+            """
         )
 
-    conn.commit()
-    conn.close()
+    db_connection.commit()
