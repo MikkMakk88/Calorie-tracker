@@ -83,7 +83,6 @@ if __name__ == '__main__':
 
         elif args.subparser_name == 'entry':
             print('entry subparser used')
-            pass
 
         else:
             print('no subparser used')
