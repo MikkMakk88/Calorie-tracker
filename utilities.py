@@ -17,15 +17,19 @@ def db_convert_match_criteria_to_string(**match_criteria) -> str:
         match_food_name='broccoli', match_portion_type='head'
     """
 
-    if match_criteria.get('match_date'):
-        match_criteria['match_date'] = date.strftime(match_criteria['match_date'], '%d-%m-%Y')
+    if match_criteria.get("match_date"):
+        match_criteria["match_date"] = date.strftime(
+            match_criteria["match_date"], "%d-%m-%Y"
+        )
 
-    remove_prefix_regex = re.compile(r'^match_')
-    match_string = ' AND '.join([
-        f"{remove_prefix_regex.sub('', key)} LIKE '%{value}%'"
-        for key, value in match_criteria.items()
-        if bool(re.match('match_', key))
-    ])
+    remove_prefix_regex = re.compile(r"^match_")
+    match_string = " AND ".join(
+        [
+            f"{remove_prefix_regex.sub('', key)} LIKE '%{value}%'"
+            for key, value in match_criteria.items()
+            if bool(re.match("match_", key))
+        ]
+    )
     return match_string
 
 
@@ -37,7 +41,7 @@ def parse_date_string_to_date_object(date_string):
     Converting back can simply be done with the date.strftime() method.
     """
 
-    valid_date = r'^([\d]{1,2})-?([\d]{1,2})-?([\d]{4})?$'
+    valid_date = r"^([\d]{1,2})-?([\d]{1,2})-?([\d]{4})?$"
     match = re.match(valid_date, date_string)
     if match:
         day = int(match.group(1))
@@ -48,4 +52,4 @@ def parse_date_string_to_date_object(date_string):
         else:
             year = date.today().year
         return date(year, month, day)
-    raise Exception('Could not parse date from string.')
+    raise Exception("Could not parse date from string.")

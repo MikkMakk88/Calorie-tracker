@@ -8,10 +8,12 @@ Low-level functions for directly handling the database.
 from datetime import datetime
 from re import match
 
-from utilities import db_convert_match_criteria_to_string, parse_date_string_to_date_object
+from utilities import (
+    db_convert_match_criteria_to_string,
+    parse_date_string_to_date_object,
+)
 
 # TODO P3 make sure to take care of cases when food dependencies are deleted later.
-# TODO P4 convert datetime objects to date objects
 
 
 def create_db_and_tables(db_connection) -> None:
@@ -22,25 +24,29 @@ def create_db_and_tables(db_connection) -> None:
     """
 
     cursor = db_connection.cursor()
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS record (
             date text,
             food_name text,
             portion_type text,
             servings integer
         )
-    """)
-    cursor.execute("""
+    """
+    )
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS foods (
             food_name text,
             portion_type text,
             calories integer
         )
-    """)
+    """
+    )
     db_connection.commit()
 
 
-def get_rows_from_table(db_connection, table_name:str, **match_criteria) -> list:
+def get_rows_from_table(db_connection, table_name: str, **match_criteria) -> list:
     """
     Retrieve all entries from specified table that fits the
     match criteria.
@@ -60,38 +66,50 @@ def get_rows_from_table(db_connection, table_name:str, **match_criteria) -> list
     # Supplying no match_criteria is a valid search,
     # in that case we return the entire table.
     if match_string:
-        match_string = 'WHERE ' + match_string
+        match_string = "WHERE " + match_string
 
-    cursor.execute(f"""
+    cursor.execute(
+        f"""
         SELECT *
         FROM {table_name}
         {match_string}
-    """)
+    """
+    )
     rows = cursor.fetchall()
 
     output_list = []
-    if table_name == 'foods':
+    if table_name == "foods":
         for row in rows:
-            output_list.append({
-                'food_name': row[0],
-                'portion_type': row[1],
-                'calories': row[2]
-            })
-    elif table_name == 'record':
+            output_list.append(
+                {
+                    "food_name": row[0],
+                    "portion_type": row[1],
+                    "calories": row[2],
+                }
+            )
+    elif table_name == "record":
         for row in rows:
-            output_list.append({
-                'date': parse_date_string_to_date_object(row[0]),
-                'food_name': row[1],
-                'portion_type': row[2],
-                'servings': row[3]
-            })
+            output_list.append(
+                {
+                    "date": parse_date_string_to_date_object(row[0]),
+                    "food_name": row[1],
+                    "portion_type": row[2],
+                    "servings": row[3],
+                }
+            )
 
     return output_list
 
 
-def add_row_to_table(db_connection, table_name:str,
-    date:datetime=None, food_name:str=None, portion_type='',
-    servings=1, calories=0) -> None:
+def add_row_to_table(
+    db_connection,
+    table_name: str,
+    date: datetime = None,
+    food_name: str = None,
+    portion_type="",
+    servings=1,
+    calories=0,
+) -> None:
     """
     Adds input data to table specified by table_name argument.
 
@@ -121,17 +139,17 @@ def add_row_to_table(db_connection, table_name:str,
     # Check whether the food already exists in the foods database.
     food_exists = get_rows_from_table(
         db_connection,
-        'foods',
+        "foods",
         match_food_name=food_name,
-        match_portion_type=portion_type
+        match_portion_type=portion_type,
     )
 
-    if table_name == 'record':
+    if table_name == "record":
         # # If the food doesn't exist in the foods db we prompt the user to add it first.
         # if not food_exists:
         # # TODO impliment this logic
-            # print('food not in db')
-            # return
+        # print('food not in db')
+        # return
 
         # Create datetime object at function call time.
         if date is None:
@@ -140,26 +158,27 @@ def add_row_to_table(db_connection, table_name:str,
         # Check if an entry with the given food exists on the given day.
         record_entries = get_rows_from_table(
             db_connection,
-            'record',
+            "record",
             match_date=date,
             match_food_name=food_name,
-            match_portion_type=portion_type
+            match_portion_type=portion_type,
         )
         # If it does, we increment the 'servings' variable and return.
         if record_entries:
             record_entry = record_entries[0]
-            record_entry['servings'] += 1
+            record_entry["servings"] += 1
             update_row_in_table(
                 db_connection,
-                'record',
+                "record",
                 **record_entry,
                 match_date=date,
                 match_food_name=food_name,
-                match_portion_type=portion_type
+                match_portion_type=portion_type,
             )
             return
         # Else we simply add the entry to the record table.
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO record
             VALUES (
                 :date,
@@ -168,19 +187,20 @@ def add_row_to_table(db_connection, table_name:str,
                 :servings
             )""",
             {
-                'date': datetime.strftime(date, '%d-%m-%Y'),
-                'food_name': food_name,
-                'portion_type': portion_type,
-                'servings': servings
-            }
+                "date": datetime.strftime(date, "%d-%m-%Y"),
+                "food_name": food_name,
+                "portion_type": portion_type,
+                "servings": servings,
+            },
         )
 
-    elif table_name == 'foods':
+    elif table_name == "foods":
         if food_exists:
             print("add_row_to_table(): food already exists in database.")
             return
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO foods
             VALUES (
                 :food_name,
@@ -188,16 +208,16 @@ def add_row_to_table(db_connection, table_name:str,
                 :calories
             )""",
             {
-                'food_name': food_name,
-                'portion_type': portion_type,
-                'calories': calories
-            }
+                "food_name": food_name,
+                "portion_type": portion_type,
+                "calories": calories,
+            },
         )
 
     db_connection.commit()
 
 
-def delete_rows_in_table(db_connection, table_name:str, **match_criteria) -> None:
+def delete_rows_in_table(db_connection, table_name: str, **match_criteria) -> None:
     """
     Behaves similarly to get_rows_from_table() but deletes matching
     rows instead of returning them.
@@ -210,29 +230,35 @@ def delete_rows_in_table(db_connection, table_name:str, **match_criteria) -> Non
     cursor = db_connection.cursor()
 
     match_string = db_convert_match_criteria_to_string(**match_criteria)
-    cursor.execute(f"""
+    cursor.execute(
+        f"""
         DELETE
         FROM {table_name}
         WHERE {match_string}
-    """)
+    """
+    )
 
     db_connection.commit()
 
 
-def delete_table(db_connection, table_name:str) -> None:
+def delete_table(db_connection, table_name: str) -> None:
     """
     Delete given table.
     """
 
     cursor = db_connection.cursor()
-    cursor.execute(f"""
+    cursor.execute(
+        f"""
         DROP
         TABLE IF EXISTS {table_name}
-    """)
+    """
+    )
     db_connection.commit()
 
 
-def update_row_in_table(db_connection, table_name:str, **update_and_match_criteria) -> None:
+def update_row_in_table(
+    db_connection, table_name: str, **update_and_match_criteria
+) -> None:
     # TODO P4 audit docstring of db.update_row_in_table()
     """
     Replace columns of all rows that match the match criteria.
@@ -259,25 +285,27 @@ def update_row_in_table(db_connection, table_name:str, **update_and_match_criter
     query_set_list = []
     for key in update_and_match_criteria:
         val = update_and_match_criteria[key]
-        if not match('match_', key):
+        if not match("match_", key):
             if isinstance(val) == str:
                 query_set_list.append(f"{key} = '{val}'")
             elif isinstance(val) == int:
                 query_set_list.append(f"{key} = {val}")
             elif isinstance(val) == datetime:
-                query_set_list.append(datetime.strftime('%d-%m-%Y'))
-    query_set_string = ', '.join(query_set_list)
+                query_set_list.append(datetime.strftime("%d-%m-%Y"))
+    query_set_string = ", ".join(query_set_list)
 
     cursor = db_connection.cursor()
-    if table_name == 'record':
-        cursor.execute(f"""
+    if table_name == "record":
+        cursor.execute(
+            f"""
             UPDATE record
             SET {query_set_string}
             WHERE {match_string}
             """
         )
-    elif table_name == 'foods':
-        cursor.execute(f"""
+    elif table_name == "foods":
+        cursor.execute(
+            f"""
             UPDATE foods
             SET {query_set_string}
             WHERE {match_string}
