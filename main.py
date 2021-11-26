@@ -3,58 +3,53 @@ Entry point of the script.
 Contains most of the interface logic.
 """
 
-from datetime import date, timedelta
+import datetime
 import sqlite3
+import logging
 
 import db
 import cli
 import cfg
-from utilities import parse_date_string_to_date_object
+
+ORM = db.ORM(cfg.DB_PATH)
 
 
 def main():
+    """
+    Main function of the program
+    """
     args = cli.parser.parse_args()
-    with sqlite3.connect(cfg.DB_PATH) as db_connection:
 
-        if args.subparser_name == "food":
-            print("food subparser used")
-            food_name = args.food
-            portion_type = args.type
-            calories = args.calories
-            db.add_row_to_table(
-                db_connection,
-                "foods",
-                food_name=food_name,
-                portion_type=portion_type,
-                calories=calories,
-            )
+    if args.subparser_name == "food":
+        logging.info("food subparser used")
 
-        elif args.subparser_name == "entry":
-            print("entry subparser used")
-            food_name = args.food
-            portion_type = args.type
-            servings = args.servings
+        food_name = args.food
+        portion_type = args.type
+        calories = args.calories
 
-            entry_date = date.today()
-            if args.date.lower() == "tomorrow":
-                entry_date += timedelta(days=1)
-            elif args.date.lower() == "yesterday":
-                entry_date -= timedelta(days=1)
-            else:
-                entry_date = parse_date_string_to_date_object(args.date)
+        ORM.add_row_to_food_table(food_name, portion_type, calories)
 
-            db.add_row_to_table(
-                db_connection,
-                "record",
-                food_name=food_name,
-                portion_type=portion_type,
-                servings=servings,
-                date=entry_date,
-            )
+    elif args.subparser_name == "entry":
+        logging.info("entry subparser used")
 
-        else:
-            print("no subparser used")
+        food_name = args.food
+        portion_type = args.type
+        servings = args.servings
+        date = args.date
+
+        ORM.add_row_to_record_table(food_name, portion_type, servings, date)
+
+    else:
+        logging.info("No subparser used")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format=(
+            "%(asctime)s - %(levelname)-5s " +
+            "%(lineno)4s:%(funcName)-25s - %(message)s"
+        ),
+    )
+    logging.info("Starting script")
     main()
