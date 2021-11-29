@@ -11,7 +11,7 @@ import db
 import cli
 import cfg
 
-ORM = db.ORM(cfg.DB_PATH)
+ORM = db.CalorieCounterORM(cfg.DB_PATH)
 
 
 def main():
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format=(
-            "%(asctime)s - %(levelname)-5s " +
+            "%(asctime)s - %(levelname)-7s - " +
             "%(lineno)4s:%(funcName)-25s - %(message)s"
         ),
     )
