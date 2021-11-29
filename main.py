@@ -23,21 +23,23 @@ def main():
     if args.subparser_name == "food":
         logging.info("food subparser used")
 
-        food_name = args.food
-        portion_type = args.type
-        calories = args.calories
-
-        ORM.add_row_to_food_table(food_name, portion_type, calories)
+        new_data = db.QueryData(
+            food_name=args.food,
+            portion_type=args.type,
+            calories=args.calories
+        )
+        ORM.add_row_to_table('food', new_data)
 
     elif args.subparser_name == "entry":
         logging.info("entry subparser used")
 
-        food_name = args.food
-        portion_type = args.type
-        servings = args.servings
-        date = args.date
-
-        ORM.add_row_to_record_table(food_name, portion_type, servings, date)
+        new_data = db.QueryData(
+            food_name=args.food,
+            portion_type=args.type,
+            servings=args.servings,
+            date=args.date
+        )
+        ORM.add_row_to_table('record', new_data)
 
     else:
         logging.info("No subparser used")

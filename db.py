@@ -30,8 +30,14 @@ class QueryData():
             "calories": self.calories,
         }
 
+        logging.info("Created new QueryData instance: %s", self)
+
     def __repr__(self):
-        return str(self.data)
+        output = []
+        for key in self.data:
+            output.append(f"{key}={self.data[key]}")
+
+        return ", ".join(output)
 
     def parse_date_string_to_date_object(self, date_string):
         """
@@ -75,8 +81,7 @@ class QueryData():
         else:
             entry_date = self.parse_date_string_to_date_object(date)
 
-        self.date = entry_date
-        return self.date
+        return entry_date
 
     def get_dict(self):
         """
@@ -95,7 +100,7 @@ class QueryData():
         Returns contained data as a string which is correctly formatted to be directly
         passed to SQL to set data in a row.
         """
-        logging.info("compiling query set string using data: %s", str(self.data))
+        logging.info("compiling query set string using data: %s", self)
 
         query_set_list = []
         data = self.get_dict()
@@ -115,16 +120,15 @@ class QueryData():
         Returns contained data as a string which is correctly formatted to be directly
         passed to SQL as a search query.
         """
-        logging.info("compiling match string using data: %s", str(self.data))
+        logging.info("compiling match string using data: %s", self)
 
-        data = self.data
-        if data["date"]is not None:
-            data["date"] = datetime.date.strftime(
-                data["date"], "%d-%m-%Y"
-            )
+        output_data = dict(self.data)
+        if output_data["date"]is not None:
+            output_data["date"] = output_data["date"].strftime("%d-%m-%Y")
+
         match_string = " AND ".join(
             [
-                f"{key} LIKE '%{value}%'" for key, value in data.items()
+                f"{key} LIKE '%{value}%'" for key, value in output_data.items()
                 if value is not None
             ]
         )
@@ -168,26 +172,7 @@ class CalorieCounterORM():
         self.db_connection.close()
         self.db_connection = None
 
-    def parse_date_string_to_date_object(self, date_string):
-        """
-        Converts a string of the form "DD-MM-YYYY" or 'DDMMYYYY' (adding the year
-        is optional) to a valid date object. Converting back can simply be done with
-        the date.strftime() method.
-        """
-        match = re.match(CalorieCounterORM.valid_date_regex, date_string)
-        if match:
-            day = int(match.group(1))
-            month = int(match.group(2))
-            year = match.group(3)
-            if year:
-                year = int(year)
-            else:
-                year = datetime.date.today().year
-            return datetime.date(year, month, day)
-
-        raise Exception(f"Invalid date string {date_string}")
-
-    def create_db_and_tables(self) -> None:
+    def create_db_and_tables(self):
         """
         Creates the database with the two separate tables.
         """
@@ -202,7 +187,7 @@ class CalorieCounterORM():
                 portion_type text,
                 servings integer
             )
-        """
+            """
         )
         cursor.execute(
             """
@@ -211,52 +196,32 @@ class CalorieCounterORM():
                 portion_type text,
                 calories integer
             )
-        """
+            """
         )
 
         self.commit_changes()
 
-    def get_rows_from_table(self, table_name: str, **match_criteria) -> list:
+    def get_rows_from_table(self, table_name, match_data):
         """
-        Retrieve all entries from specified table that fits the
-        match criteria.
+        Retrieve all entries from specified table that fits the match_data. Always
+        returns a list of none or more QueryData instances.
 
-        Match criteria should be passed as none or more kwargs in the
-        form: match_<column name>=<match criteria>, e.g:
-
-            match_food_name='broccoli', match_portion_type='head'
-
-        Always returns a list of none or more dictionaries, with each
-        dictionary containing the data of an individual row.
+        Supplying no match_data is a valid search, in that case we return the entire
+        table.
         """
         cursor = self.get_or_create_db_cursor()
 
         logging.info(
-            "Getting rows from %s table that match %s", table_name, str(match_criteria)
+            "Getting rows from %s table that match %s", table_name, match_data
         )
 
-        #TODO tmp during refactor
-        remove_prefix_regex = re.compile(r"^match_")
-        match_data = {
-            remove_prefix_regex.sub("", key): value
-            for key, value in match_criteria.items()
-            if value is not None
-        }
-
-        match_data = QueryData(**match_data)
         match_string = match_data.get_query_match_string()
-
-        # Supplying no match_criteria is a valid search,
-        # in that case we return the entire table.
-        if match_string:
-            match_string = "WHERE " + match_string
-
         cursor.execute(
             f"""
             SELECT *
             FROM {table_name}
-            {match_string}
-        """
+            WHERE {match_string}
+            """
         )
         rows = cursor.fetchall()
 
@@ -281,92 +246,47 @@ class CalorieCounterORM():
 
         return query_results
 
-    def add_row_to_table( self,
-        table_name: str,
-        date: datetime.date = None,
-        food_name: str = None,
-        portion_type="",
-        servings=None,
-        calories=None,
-    ) -> None:
+    def add_row_to_table(self, table_name, new_data):
         """
-        Adds input data to table specified by table_name argument.
-
-        Desired input data should be passed as an appropriate kwarg
-        for each separate column, e.g:
-
-            food_name='broccoli'
-
-        Not specifying data for a column will cause it to revert to
-        a default value, this is desired behavior.
-
-        Note: food_name is required to perform a sensible query. It is
-        only listed as a keyword argument for the sake of consistency
-        with the other functions.
-
-        This function will not check whether or not a matching entry
-        is already present in the database.
+        Adds new_data to the specified table.
         """
         cursor = self.get_or_create_db_cursor()
 
-        if not food_name:
+        if not new_data.food_name:
             logging.warn("No food_name given")
             return
 
-        match_data_dict = {
-            'date': date,
-            'food_name': food_name,
-            'portion_type': portion_type,
-            'servings': servings,
-            'calories': calories,
-        }
-
-        print('------', match_data_dict)
-        match_data = QueryData(**match_data_dict)
-
-        # Check whether the food already exists in the foods database.
-        food_exists = self.get_rows_from_table(
-            "foods",
-            match_food_name=match_data.food_name,
-            match_portion_type=match_data.portion_type,
-        )
+        match_dict = new_data.get_dict()
+        match_dict['servings'] = None
+        match_data = QueryData(**match_dict)
 
         if table_name == "record":
-            # TODO If the food doesn't exist in the foods db we prompt the user to add 
-            # it first if not food_exists
-
-            # Create date object at function call time.
-            if match_data.date is None:
-                match_data.date = datetime.date.today()
-
-            # Check if an entry with the given food exists on the given day.
             record_entries = self.get_rows_from_table(
                 "record",
-                match_date=match_data.date,
-                match_food_name=match_data.food_name,
-                match_portion_type=match_data.portion_type,
+                match_data
             )
-            # If it does, we increment the 'servings' variable and return.
-            if record_entries:
-                if len(record_entries) > 1:
-                    raise Exception("More than one matching entry on record")
-                    return
 
+            if len(record_entries) > 1:
+                raise Exception("More than one matching entry on record")
+                return
+
+            # increment servings count if entry already exists in the database
+            if record_entries:
                 logging.info(
                     "Food already exists at this date, incrementing servings count"
                 )
+
                 record_entry = record_entries[0]
-                record_entry["servings"] += 1
+                record_entry['servings'] += new_data.servings
                 update_data = QueryData(**record_entry)
 
                 self.update_row_in_table(
                     "record",
                     update_data,
-                    # TODO add match_data object here
                     match_data
                 )
                 return
-            # Else we simply add the entry to the record table.
+
             cursor.execute(
                 """
                 INSERT INTO record
@@ -375,16 +295,25 @@ class CalorieCounterORM():
                     :food_name,
                     :portion_type,
                     :servings
-                )""",
+                )
+                """,
                 {
-                    "date": datetime.date.strftime(date, "%d-%m-%Y"),
-                    "food_name": food_name,
-                    "portion_type": portion_type,
-                    "servings": servings,
+                    "date": new_data.get_date_string(),
+                    "food_name": new_data.food_name,
+                    "portion_type": new_data.portion_type,
+                    "servings": new_data.servings,
                 },
             )
 
         elif table_name == "foods":
+            match_data = QueryData(
+                new_data.food_name,
+                new_data.portion_type
+            )
+            food_exists = self.get_rows_from_table(
+                "foods",
+                match_data
+            )
             if food_exists:
                 logging.warn("Food already exists in database")
                 return
@@ -396,93 +325,33 @@ class CalorieCounterORM():
                     :food_name,
                     :portion_type,
                     :calories
-                )""",
+                )
+                """,
                 {
-                    "food_name": food_name,
-                    "portion_type": portion_type,
-                    "calories": calories,
+                    "food_name": new_data.food_name,
+                    "portion_type": new_data.portion_type,
+                    "calories": new_data.calories,
                 },
             )
 
         self.commit_changes()
 
-    def add_row_to_food_table(self, food_name, portion_type, calories) -> None:
+    def delete_rows_in_table(self, table_name, match_data):
         """
-        Add a row to the food table.
-        """
-        logging.info(
-                "Adding row to food table: food_name: %s, portion_type: %s, " +
-                "calories: %s",
-            food_name,
-            portion_type,
-            str(calories),
-        )
-        self.add_row_to_table(
-            "foods",
-            food_name=food_name,
-            portion_type=portion_type,
-            calories=calories,
-        )
-
-    def add_row_to_record_table(self, food_name, portion_type, servings, date) -> None:
-        """
-        Add a row to the record table.
+        Behaves similarly to get_rows_from_table() but deletes matching rows instead of
+        returning them.
         """
         logging.info(
-                "Adding row to record table: food_name: %s, portion_type: %s, " +
-                "servings: %s, date: %s",
-            food_name,
-            portion_type,
-            str(servings),
-            date,
+            "Deleting rows from %s table that match %s", table_name, match_data
         )
-
-        entry_date = datetime.date.today()
-        if date.lower() == "today":
-            pass
-        elif date.lower() == "tomorrow":
-            entry_date += datetime.date.timedelta(days=1)
-        elif date.lower() == "yesterday":
-            entry_date -= datetime.date.timedelta(days=1)
-        else:
-            entry_date = self.parse_date_string_to_date_object(date)
-
-        self.add_row_to_table(
-            "record",
-            food_name=food_name,
-            portion_type=portion_type,
-            servings=servings,
-            date=entry_date,
-        )
-
-    def delete_rows_in_table(self, table_name: str, **match_criteria) -> None:
-        """
-        Behaves similarly to get_rows_from_table() but deletes matching
-        rows instead of returning them.
-        """
-        logging.info(
-            "Deleting rows from %s table that match %s", table_name, str(match_criteria)
-        )
-        if not match_criteria:
-            logging.warn("No match_criteria passed.")
-            return
 
         cursor = self.get_or_create_db_cursor()
 
-        #TODO tmp during refactor
-        remove_prefix_regex = re.compile(r"^match_")
-        match_data = {
-            remove_prefix_regex.sub("", key): value
-            for key, value in match_criteria.items()
-            if value is not None
-        }
-
-        query_data = QueryData(**match_data)
         match_string = query_data.get_query_match_string()
 
         self.commit_changes()
 
-    def delete_table(self, table_name: str) -> None:
+    def delete_table(self, table_name):
         """
         Delete given table.
         """
@@ -492,11 +361,11 @@ class CalorieCounterORM():
             f"""
             DROP
             TABLE IF EXISTS {table_name}
-        """
+            """
         )
         self.commit_changes()
 
-    def update_row_in_table(self, table_name: str, update_data, match_data):
+    def update_row_in_table(self, table_name, update_data, match_data):
         """
         Replace columns of all rows that match the match criteria.
 
@@ -517,34 +386,17 @@ class CalorieCounterORM():
         broccoli in the foods table.
         """
         logging.info(
-            "Updating row in %s table with data: %s",
-            table_name,
-            update_data,
+            "Updating row in %s table with data: %s", table_name, update_data,
         )
 
-        #TODO tmp during refactor
-        # remove_prefix_regex = re.compile(r"^match_")
-        # match_data = {}
-        # update_data = {}
-        # for key, value in update_and_match_criteria.items():
-        #     if remove_prefix_regex.search(key):
-        #         new_key = remove_prefix_regex.sub("", key)
-        #         match_data[new_key] = value
-        #     else:
-        #         update_data[key] = value
-
-        print('-----', match_data)
-        print('-----', update_data)
-
         match_string = match_data.get_query_match_string()
-
-        update_data = update_data.get_query_set_string()
+        update_string = update_data.get_query_set_string()
 
         cursor = self.get_or_create_db_cursor()
         if table_name == "record":
             cursor.execute(
                 f"""UPDATE record
-                SET {update_data}
+                SET {update_string}
                 WHERE {match_string}
                 """
             )
@@ -552,7 +404,7 @@ class CalorieCounterORM():
             cursor.execute(
                 f"""
                 UPDATE foods
-                SET {update_data}
+                SET {update_string}
                 WHERE {match_string}
                 """
             )
